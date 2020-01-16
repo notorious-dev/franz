@@ -42,6 +42,8 @@ export default class ServicesStore extends Store {
     // Register action handlers
     this.actions.service.setActive.listen(this._setActive.bind(this));
     this.actions.service.blurActive.listen(this._blurActive.bind(this));
+    this.actions.service.setSuspended.listen(this._setSuspended.bind(this));
+    this.actions.service.clearSuspended.listen(this._clearSuspended.bind(this));
     this.actions.service.setActiveNext.listen(this._setActiveNext.bind(this));
     this.actions.service.setActivePrev.listen(this._setActivePrev.bind(this));
     this.actions.service.showAddServiceInterface.listen(this._showAddServiceInterface.bind(this));
@@ -100,6 +102,41 @@ export default class ServicesStore extends Store {
     );
   }
 
+  initialize() {
+    super.initialize();
+
+    // Check services to become suspended
+    this._suspendTick();
+  }
+
+  teardown() {
+    super.teardown();
+
+    // Stop checking services for suspend
+    this._suspendTick.cancel();
+  }
+
+  /**
+   * Сheck for services to become suspended.
+   */
+  _suspendTick = debounce(() => {
+    this._suspendServices();
+    this._suspendTick();
+  }, 1 * 60 * 1000); // every 1 min
+
+  /**
+   * Defines which services should be suspended.
+   */
+  _suspendServices() {
+    this.all.forEach(service => {
+      if (!service.isActive && (Date.now() - service.liveFrom > 5 * 60 * 1000)) {
+        // If service is stale for 5 min, suspend it.
+        this._setSuspended({ serviceId: service.id });
+      }
+    });
+  }
+
+  // Computed props
   @computed get all() {
     if (this.stores.user.isLoggedIn) {
       const services = this.allServicesRequest.execute().result;
@@ -300,6 +337,7 @@ export default class ServicesStore extends Store {
       this.all[index].isActive = false;
     });
     service.isActive = true;
+    this._clearSuspended({ serviceId: service.id });
 
     statsEvent('activate-service', service.recipe.id);
 
@@ -309,6 +347,25 @@ export default class ServicesStore extends Store {
   @action _blurActive() {
     if (!this.active) return;
     this.active.isActive = false;
+  }
+
+  @action _setSuspended({ serviceId }) {
+    const service = this.one(serviceId);
+    if (service.isActive) {
+      debug('Trying to suspend active service.');
+      return;
+    }
+    service.isSuspended = true;
+
+    statsEvent('add-suspended-service', service.recipe.id);
+  }
+
+  @action _clearSuspended({ serviceId }) {
+    const service = this.one(serviceId);
+    service.isSuspended = false;
+    service.liveFrom = Date.now();
+
+    statsEvent('remove-suspended-service', service.recipe.id);
   }
 
   @action _setActiveNext() {

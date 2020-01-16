@@ -24,6 +24,10 @@ export default class Service {
 
   @observable isActive = false; // Is current webview active
 
+  @observable isSuspended = false;
+
+  @observable liveFrom = Date.now(); // timestamp
+
   @observable name = '';
 
   @observable unreadDirectMessageCount = 0;
