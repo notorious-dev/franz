@@ -6,6 +6,12 @@ export default {
     serviceId: PropTypes.string.isRequired,
     keepActiveRoute: PropTypes.bool,
   },
+  setSuspended: {
+    serviceId: PropTypes.string.isRequired,
+  },
+  clearSuspended: {
+    serviceId: PropTypes.string.isRequired,
+  },
   blurActive: {},
   setActiveNext: {},
   setActivePrev: {},

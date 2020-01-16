@@ -143,11 +143,14 @@ export default @observer class ServiceView extends Component {
                 {service.recipe.id === CUSTOM_WEBSITE_ID && (
                   <WebControlsScreen service={service} />
                 )}
-                <ServiceWebview
-                  service={service}
-                  setWebviewReference={setWebviewReference}
-                  detachService={detachService}
-                />
+                {!service.isSuspended &&
+                  // Removing <webview /> from the DOM kills the process associated with it
+                  <ServiceWebview
+                    service={service}
+                    setWebviewReference={setWebviewReference}
+                    detachService={detachService}
+                  />
+                }
               </>
             )}
           </>
